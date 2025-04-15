@@ -32,21 +32,22 @@ document.getElementById("analyzeBtn").addEventListener("click", function () {
 
 async function processarItem(codigo, convenio, index) {
   try {
-    const carregarJSON = async (caminho) => {
-      const response = await fetch(caminho);
-      if (!response.ok) {
-        const textoErro = await response.text();
-        console.warn(`Erro ao buscar ${caminho}:`, response.status);
-        console.warn(`Conteúdo retornado (${caminho}):`, textoErro);
-        throw new Error(`Erro ao carregar ${caminho}: ${response.status}`);
-      }
-      return response.json();
-    };
-
     const [dadosProdutos, dadosAnvisa, tabelaIpi] = await Promise.all([
-      carregarJSON('./assets/exportardados.json'),
-      carregarJSON('./assets/anvisa.json'),
-      carregarJSON('./assets/tabelatipi.json')
+      fetch('./assets/exportarDados.json')
+        .then(r => {
+          if (!r.ok) throw new Error('Erro ao carregar exportarDados.json');
+          return r.json();
+        }),
+      fetch('./assets/anvisa.json')
+        .then(r => {
+          if (!r.ok) throw new Error('Erro ao carregar anvisa.json');
+          return r.json();
+        }),
+      fetch('./assets/tabelatipi.json') // nome corrigido
+        .then(r => {
+          if (!r.ok) throw new Error('Erro ao carregar tabelatipi.json');
+          return r.json();
+        })
     ]);
 
     const produto = dadosProdutos.find(p => p.Codigo === codigo);
@@ -54,16 +55,16 @@ async function processarItem(codigo, convenio, index) {
     const descricao = produto ? produto.Descrição : "Descrição não encontrada";
 
     const { ncmFormatado, cestFormatado, cestStyle, alertaCest, nFCI } = buscarNCMECest(produto, dadosAnvisa);
-    
+
     // Busca o preço monitorado no anvisa.json
     let precoMonitorado = "Produto não cadastrado na CMED";
     if (produto && produto["Cód. Barras"] && dadosAnvisa) {
-      const produtoAnvisa = dadosAnvisa.find(item => 
-        item["EAN 1"] === produto["Cód. Barras"] || 
-        item["EAN 2"] === produto["Cód. Barras"] || 
+      const produtoAnvisa = dadosAnvisa.find(item =>
+        item["EAN 1"] === produto["Cód. Barras"] ||
+        item["EAN 2"] === produto["Cód. Barras"] ||
         item["EAN 3"] === produto["Cód. Barras"]
       );
-      
+
       if (produtoAnvisa && produtoAnvisa["PF 20,5 %"]) {
         precoMonitorado = `R$: ${produtoAnvisa["PF 20,5 %"]}`;
       }
