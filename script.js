@@ -741,12 +741,12 @@ document.getElementById("copyAllBtn").addEventListener("click", () => {
   }, 1500);
 });
 
-// Adicionar novo item
+// Adicionar novo item - Versão corrigida
 document.getElementById("addItemBtn").addEventListener("click", function() {
   const newItem = document.createElement("div");
   newItem.className = "item-input";
   newItem.innerHTML = `
-    <input type="number" placeholder="Código do Produto" class="codigo-input" inputmode="numeric" min="1">
+    <input type="number" placeholder="Código do Produto" class="codigo-input" min="1">
     <select class="convenio-select">
       <option value="Não" selected>Não</option>
       <option value="Convênio 10/02">Convênio 10/02</option>
@@ -758,11 +758,19 @@ document.getElementById("addItemBtn").addEventListener("click", function() {
     </select>
     <button type="button" class="removeBtn">Remover</button>
   `;
+  
+  // Adiciona o novo item ao container
   document.getElementById("itemsContainer").appendChild(newItem);
   
-  // Adiciona evento de clique ao novo botão de remover
+  // Adiciona o evento de clique ao novo botão de remover
   newItem.querySelector(".removeBtn").addEventListener("click", function() {
-    removeItem(this);
+    // Verifica se é o último item antes de remover
+    const itens = document.querySelectorAll(".item-input");
+    if (itens.length > 1) {
+      newItem.remove();
+    } else {
+      alert("Você precisa ter pelo menos um item na lista.");
+    }
   });
 });
 
