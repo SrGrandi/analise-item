@@ -384,3 +384,12 @@ button[id^="copyBtn"] {
   display: none;
   box-shadow: 0 3px 10px rgba(0,0,0,0.2);
 }
+
+/* Estilo para cópia formatada */
+.copy-format {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #000000;
+  white-space: pre-line;
+}

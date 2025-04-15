@@ -287,6 +287,7 @@ async function processarItem(codigo, convenio, index) {
 
     document.getElementById("results").appendChild(tabela);
     document.getElementById("results").appendChild(criarBotaoCopiar(tabela, index));
+    showCopyAllButton();
   } catch (err) {
     console.error("Erro ao processar item:", err);
     showNotification('error', `Falha no item ${codigo}`, err.message);
@@ -903,15 +904,26 @@ function criarBotaoCopiar(tabela, index) {
 }
 
 function copiarTabela(tabela, botao) {
-  const range = document.createRange();
-  range.selectNode(tabela);
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-
+  // Criar uma versão formatada para o Outlook
+  const rows = tabela.querySelectorAll("tr");
+  let textoFormatado = "";
+  
+  rows.forEach(row => {
+    const cols = row.querySelectorAll("td");
+    if (cols.length === 2) {
+      textoFormatado += `${cols[0].textContent}: ${cols[1].textContent}\n`;
+    }
+  });
+  
+  // Copiar para área de transferência
+  const temp = document.createElement("textarea");
+  temp.value = textoFormatado;
+  document.body.appendChild(temp);
+  temp.select();
   document.execCommand("copy");
-  sel.removeAllRanges();
-
+  document.body.removeChild(temp);
+  
+  // Feedback visual
   botao.classList.add("copiado");
   botao.textContent = "✅ Copiado";
   setTimeout(() => {
@@ -923,16 +935,26 @@ function copiarTabela(tabela, botao) {
 // Copiar todos os resultados
 document.getElementById("copyAllBtn").addEventListener("click", function() {
   const tabelas = document.querySelectorAll(".result-table");
-  let texto = "";
-  tabelas.forEach(t => texto += t.innerText + "\n\n");
-
+  let textoFormatado = "";
+  
+  tabelas.forEach(tabela => {
+    const rows = tabela.querySelectorAll("tr");
+    rows.forEach(row => {
+      const cols = row.querySelectorAll("td");
+      if (cols.length === 2) {
+        textoFormatado += `${cols[0].textContent}: ${cols[1].textContent}\n`;
+      }
+    });
+    textoFormatado += "\n"; // Espaço entre itens
+  });
+  
   const temp = document.createElement("textarea");
-  temp.value = texto;
+  temp.value = textoFormatado;
   document.body.appendChild(temp);
   temp.select();
   document.execCommand("copy");
   document.body.removeChild(temp);
-
+  
   const botao = document.getElementById("copyAllBtn");
   botao.classList.add("copiado");
   botao.textContent = "✅ Copiado Todos";
@@ -979,6 +1001,16 @@ function removeItem(button) {
     item.remove();
   } else {
     alert("Você precisa ter pelo menos um item na lista.");
+  }
+}
+
+// Mostrar botão "Copiar Todos" quando houver resultados
+function showCopyAllButton() {
+  const copyAllBtn = document.getElementById("copyAllBtn");
+  if (document.querySelectorAll(".result-container").length > 0) {
+    copyAllBtn.style.display = "inline-block";
+  } else {
+    copyAllBtn.style.display = "none";
   }
 }
 
