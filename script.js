@@ -84,7 +84,16 @@ async function processarItem(codigo, convenio, index) {
     produtoGlobal = produto;
     const descricao = produto ? produto.Descrição : "Descrição não encontrada";
 
-    const { ncmFormatado, cestFormatado, cestStyle, alertaCest, nFCI, xmlEncontrado } = buscarNCMECest(produto, dadosAnvisa);
+    const { 
+      ncmFormatado, 
+      cestFormatado, 
+      cestStyle, 
+      alertaCest, 
+      nFCI, 
+      origem, 
+      fciParaExibir, 
+      xmlEncontrado 
+    } = buscarNCMECest(produto, dadosAnvisa);
 
     // Busca o preço monitorado no anvisa.json
     let precoMonitorado = "Produto não cadastrado na CMED";
@@ -112,7 +121,9 @@ async function processarItem(codigo, convenio, index) {
       tabelaIpi,
       nFCI,
       precoMonitorado,
-      xmlEncontrado
+      xmlEncontrado,
+      origem,
+      fciParaExibir
     });
 
     document.getElementById("results").appendChild(tabela);
@@ -614,7 +625,22 @@ function determinarLista(cestFormatado) {
   return "NEUTRA";
 }
 
-function gerarTabela({ index, codigo, descricao, ncmFormatado, cestFormatado, cestStyle, alertaCest, convenio, tabelaIpi, nFCI, precoMonitorado, xmlEncontrado }) {
+function gerarTabela({ 
+  index, 
+  codigo, 
+  descricao, 
+  ncmFormatado, 
+  cestFormatado, 
+  cestStyle, 
+  alertaCest, 
+  convenio, 
+  tabelaIpi, 
+  nFCI, 
+  precoMonitorado, 
+  xmlEncontrado,
+  origem,
+  fciParaExibir
+}) {
   const temST = verificarSubstituicaoTributaria(ncmFormatado, cestFormatado);
   const debitoCredito = temST ? 'NÃO' : 'SIM';
   
