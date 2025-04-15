@@ -393,3 +393,27 @@ button[id^="copyBtn"] {
   color: #000000;
   white-space: pre-line;
 }
+
+/* Adicione ao style.css */
+.outlook-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  margin-bottom: 15px;
+}
+
+.outlook-table td {
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+}
+
+.outlook-table td:first-child {
+  background-color: #f1f8fe;
+  font-weight: bold;
+  width: 25%;
+}
+
+.outlook-table td:last-child {
+  width: 75%;
+}

@@ -1,6 +1,49 @@
 // =============================================
 // FUNÇÕES AUXILIARES (definir no início do arquivo)
 // =============================================
+// Adicione no início do script.js
+if (!window.ClipboardItem) {
+  console.warn("ClipboardItem not supported - falling back to text copy");
+  
+  // Substitua as funções de cópia por versões simplificadas
+  window.copiarTabela = function(tabela, botao) {
+    const temp = document.createElement("textarea");
+    temp.value = tabela.innerText;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand("copy");
+    document.body.removeChild(temp);
+    
+    botao.classList.add("copiado");
+    botao.textContent = "✅ Copiado";
+    setTimeout(() => {
+      botao.classList.remove("copiado");
+      botao.textContent = "Copiar";
+    }, 1500);
+  };
+  
+  document.getElementById("copyAllBtn").onclick = function() {
+    const tabelas = document.querySelectorAll(".result-table");
+    let texto = "";
+    tabelas.forEach(t => texto += t.innerText + "\n\n");
+    
+    const temp = document.createElement("textarea");
+    temp.value = texto;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand("copy");
+    document.body.removeChild(temp);
+    
+    const botao = document.getElementById("copyAllBtn");
+    botao.classList.add("copiado");
+    botao.textContent = "✅ Copiado Todos";
+    setTimeout(() => {
+      botao.classList.remove("copiado");
+      botao.textContent = "Copiar Todos";
+    }, 1500);
+  };
+}
+
 function showNotification(type, message, solution = '') {
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
@@ -906,62 +949,81 @@ function criarBotaoCopiar(tabela, index) {
 function copiarTabela(tabela, botao) {
   // Criar uma versão formatada para o Outlook
   const rows = tabela.querySelectorAll("tr");
-  let textoFormatado = "";
+  let htmlFormatado = `
+    <table border="1" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px;">
+  `;
   
   rows.forEach(row => {
     const cols = row.querySelectorAll("td");
     if (cols.length === 2) {
-      textoFormatado += `${cols[0].textContent}: ${cols[1].textContent}\n`;
+      htmlFormatado += `
+        <tr>
+          <td style="background-color: #f1f8fe; font-weight: bold; border: 1px solid #ddd;">${cols[0].textContent}</td>
+          <td style="border: 1px solid #ddd;">${cols[1].textContent}</td>
+        </tr>
+      `;
     }
   });
   
-  // Copiar para área de transferência
-  const temp = document.createElement("textarea");
-  temp.value = textoFormatado;
-  document.body.appendChild(temp);
-  temp.select();
-  document.execCommand("copy");
-  document.body.removeChild(temp);
+  htmlFormatado += `</table>`;
   
-  // Feedback visual
-  botao.classList.add("copiado");
-  botao.textContent = "✅ Copiado";
-  setTimeout(() => {
-    botao.classList.remove("copiado");
-    botao.textContent = "Copiar";
-  }, 1500);
+  // Copiar HTML para área de transferência
+  const blob = new Blob([htmlFormatado], {type: 'text/html'});
+  const data = [new ClipboardItem({'text/html': blob})];
+  navigator.clipboard.write(data).then(() => {
+    // Feedback visual
+    botao.classList.add("copiado");
+    botao.textContent = "✅ Copiado";
+    setTimeout(() => {
+      botao.classList.remove("copiado");
+      botao.textContent = "Copiar";
+    }, 1500);
+  });
 }
 
 // Copiar todos os resultados
 document.getElementById("copyAllBtn").addEventListener("click", function() {
   const tabelas = document.querySelectorAll(".result-table");
-  let textoFormatado = "";
+  let htmlFormatado = `
+    <div style="font-family: Arial, sans-serif; font-size: 11px;">
+  `;
   
-  tabelas.forEach(tabela => {
+  tabelas.forEach((tabela, index) => {
     const rows = tabela.querySelectorAll("tr");
+    htmlFormatado += `
+      <h3 style="color: #1D4D63; margin-bottom: 5px;">Item ${index + 1}</h3>
+      <table border="1" cellpadding="4" cellspacing="0" style="border-collapse: collapse; margin-bottom: 20px; width: 100%;">
+    `;
+    
     rows.forEach(row => {
       const cols = row.querySelectorAll("td");
       if (cols.length === 2) {
-        textoFormatado += `${cols[0].textContent}: ${cols[1].textContent}\n`;
+        htmlFormatado += `
+          <tr>
+            <td style="background-color: #f1f8fe; font-weight: bold; border: 1px solid #ddd; width: 25%;">${cols[0].textContent}</td>
+            <td style="border: 1px solid #ddd; width: 75%;">${cols[1].textContent}</td>
+          </tr>
+        `;
       }
     });
-    textoFormatado += "\n"; // Espaço entre itens
+    
+    htmlFormatado += `</table>`;
   });
   
-  const temp = document.createElement("textarea");
-  temp.value = textoFormatado;
-  document.body.appendChild(temp);
-  temp.select();
-  document.execCommand("copy");
-  document.body.removeChild(temp);
+  htmlFormatado += `</div>`;
   
-  const botao = document.getElementById("copyAllBtn");
-  botao.classList.add("copiado");
-  botao.textContent = "✅ Copiado Todos";
-  setTimeout(() => {
-    botao.classList.remove("copiado");
-    botao.textContent = "Copiar Todos";
-  }, 1500);
+  // Copiar HTML para área de transferência
+  const blob = new Blob([htmlFormatado], {type: 'text/html'});
+  const data = [new ClipboardItem({'text/html': blob})];
+  navigator.clipboard.write(data).then(() => {
+    const botao = document.getElementById("copyAllBtn");
+    botao.classList.add("copiado");
+    botao.textContent = "✅ Copiado Todos";
+    setTimeout(() => {
+      botao.classList.remove("copiado");
+      botao.textContent = "Copiar Todos";
+    }, 1500);
+  });
 });
 
 // Adicionar novo item - Versão corrigida
