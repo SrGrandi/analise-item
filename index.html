@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Análise de Itens - Fiscal Drogafonte ®</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="faixa-superior"></div>
+
+  <header>
+    <img src="logo-drogafonte-n (2).png" alt="Logo Drogafonte">
+    <h1>Análise de Itens - Fiscal</h1>
+  </header>
+
+  <div class="xml-section">
+    <label for="xmlFile">Selecionar XML:</label>
+    <input type="file" id="xmlFile" accept=".xml">
+    <div id="selectedFileName"></div>
+  </div>
+
+  <h2>Itens Adicionados</h2>
+  <div id="itemsContainer">
+    <div class="item-input">
+      <input type="number" placeholder="Código do Produto" class="codigo-input" inputmode="numeric" min="1">
+      <select class="convenio-select">
+        <option value="Não" selected>Não</option>
+        <option value="Convênio 10/02">Convênio 10/02</option>
+        <option value="Convênio 01/99">Convênio 01/99</option>
+        <option value="Convênio 87/02">Convênio 87/02</option>
+        <option value="Convênio 126/10">Convênio 126/10</option>
+        <option value="Convênio 162/94">Convênio 162/94</option>
+        <option value="Convênio 140/01">Convênio 140/01</option>
+      </select>
+      <button type="button" class="removeBtn">Remover</button>
+    </div>
+  </div>
+
+  <button type="button" id="addItemBtn">Adicionar Item</button>
+  <br>
+  <button type="button" id="analyzeBtn">Analisar</button>
+
+  <div id="results"></div>
+  <button id="copyAllBtn" style="display: none;">Copiar Todos</button>
+
+  <script src="script.js"></script>
+</body>
+</html>
