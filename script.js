@@ -65,6 +65,40 @@ function renderFileList(container) {
   container.appendChild(list);
 }
 
+function showTooltip(message) {
+  let tooltip = document.getElementById("analysis-tooltip");
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.id = "analysis-tooltip";
+    document.body.appendChild(tooltip);
+  }
+  tooltip.textContent = message;
+  tooltip.style.display = "block";
+}
+
+function hideTooltip() {
+  const tooltip = document.getElementById("analysis-tooltip");
+  if (tooltip) tooltip.style.display = "none";
+}
+
+function handleFetch(response) {
+  if (!response.ok) {
+    throw new Error(`Erro ${response.status} ao carregar ${response.url}`);
+  }
+  return response.json();
+}
+
+function updateAnalysisProgress(current, total, message = '') {
+  const progress = Math.round((current / total) * 100);
+  const progressBar = document.querySelector(".analysis-progress .progress");
+  const progressText = document.querySelector(".analysis-progress .progress-text");
+  const currentItem = document.querySelector(".analysis-progress .current-item");
+  
+  if (progressBar) progressBar.style.width = `${progress}%`;
+  if (progressText) progressText.textContent = `Processando (${current}/${total})`;
+  if (currentItem && message) currentItem.textContent = message;
+}
+
 // =============================================
 // CÓDIGO PRINCIPAL
 // =============================================
@@ -76,7 +110,6 @@ document.getElementById("xmlFiles").addEventListener("change", function (e) {
   const files = e.target.files;
   const fileNamesDiv = document.getElementById("selectedFileNames");
   
-  // Limpar conteúdo anterior e mostrar estado de carregamento
   fileNamesDiv.innerHTML = `
     <div class="loading">
       <div class="spinner"></div>
@@ -89,20 +122,14 @@ document.getElementById("xmlFiles").addEventListener("change", function (e) {
     return;
   }
 
-  // Resetar array de conteúdos
   xmlContents = [];
-  
-  // Desabilitar botão de análise durante o carregamento
   document.getElementById("analyzeBtn").disabled = true;
   
-  // Contador para acompanhar o progresso
   let filesLoaded = 0;
   const totalFiles = files.length;
   
-  // Atualizar UI com progresso inicial
   updateFileProgress(fileNamesDiv, filesLoaded, totalFiles);
   
-  // Processar cada arquivo
   Array.from(files).forEach((file, index) => {
     const reader = new FileReader();
     
@@ -115,7 +142,6 @@ document.getElementById("xmlFiles").addEventListener("change", function (e) {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(reader.result, "application/xml");
         
-        // Verificar se o XML é válido
         const errorNode = xmlDoc.querySelector("parsererror");
         if (errorNode) {
           throw new Error("Arquivo XML inválido");
@@ -129,40 +155,21 @@ document.getElementById("xmlFiles").addEventListener("change", function (e) {
         filesLoaded++;
         updateFileProgress(fileNamesDiv, filesLoaded, totalFiles, `Processado: ${file.name}`);
         
-        // Quando todos os arquivos estiverem carregados
         if (filesLoaded === totalFiles) {
-          showNotification(
-            'success', 
-            'Carregamento concluído', 
-            `${totalFiles} arquivo(s) XML foram carregados com sucesso.`
-          );
-          
-          // Atualizar lista final de arquivos
+          showNotification('success', 'Carregamento concluído', `${totalFiles} arquivo(s) XML foram carregados com sucesso.`);
           renderFileList(fileNamesDiv);
-          
-          // Habilitar botão de análise
           document.getElementById("analyzeBtn").disabled = false;
         }
       } catch (error) {
         console.error("Erro ao processar arquivo:", file.name, error);
-        showNotification(
-          'error',
-          `Erro no arquivo ${file.name}`,
-          'O arquivo pode estar corrompido ou não é um XML válido. Verifique e tente novamente.'
-        );
-        
-        // Continuar mesmo com erro em um arquivo
+        showNotification('error', `Erro no arquivo ${file.name}`, 'O arquivo pode estar corrompido ou não é um XML válido. Verifique e tente novamente.');
         filesLoaded++;
         updateFileProgress(fileNamesDiv, filesLoaded, totalFiles);
       }
     };
     
     reader.onerror = function() {
-      showNotification(
-        'error',
-        `Falha ao ler o arquivo ${file.name}`,
-        'O arquivo pode estar inacessível. Verifique as permissões e tente novamente.'
-      );
+      showNotification('error', `Falha ao ler o arquivo ${file.name}`, 'O arquivo pode estar inacessível. Verifique as permissões e tente novamente.');
       filesLoaded++;
       updateFileProgress(fileNamesDiv, filesLoaded, totalFiles);
     };
@@ -173,44 +180,66 @@ document.getElementById("xmlFiles").addEventListener("change", function (e) {
 
 document.getElementById("analyzeBtn").addEventListener("click", function () {
   const container = document.getElementById("results");
-  container.innerHTML = "";
-  document.getElementById("copyAllBtn").style.display = "inline-block";
-
+  container.innerHTML = `
+    <div class="analysis-progress">
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress" style="width: 0%"></div>
+        </div>
+        <div class="progress-text">Preparando análise (0/${document.querySelectorAll(".item-input").length})</div>
+        <div class="current-item"></div>
+      </div>
+    </div>
+  `;
+  
   const itens = document.querySelectorAll(".item-input");
-
+  const totalItens = itens.length;
+  let itensProcessados = 0;
+  
+  document.getElementById("analyzeBtn").disabled = true;
+  document.getElementById("addItemBtn").disabled = true;
+  
   itens.forEach((item, index) => {
     const codigo = String(Number(item.querySelector(".codigo-input").value));
     const convenio = item.querySelector(".convenio-select").value;
-
+    
+    updateAnalysisProgress(index + 1, totalItens, `Processando item ${codigo}...`);
+    
     if (isNaN(Number(codigo)) || codigo === "0") {
-      alert("Por favor, insira um código válido.");
+      showNotification('error', 'Código inválido', `O item na posição ${index + 1} contém um código inválido`);
+      itensProcessados++;
+      updateAnalysisProgress(itensProcessados, totalItens);
       return;
     }
-
-    processarItem(codigo, convenio, index);
+    
+    processarItem(codigo, convenio, index)
+      .finally(() => {
+        itensProcessados++;
+        if (itensProcessados === totalItens) {
+          document.getElementById("analyzeBtn").disabled = false;
+          document.getElementById("addItemBtn").disabled = false;
+          document.querySelector(".analysis-progress").innerHTML += `
+            <div class="analysis-complete">
+              ✅ Análise concluída - ${totalItens} itens processados
+            </div>
+          `;
+        }
+      });
   });
 });
 
 async function processarItem(codigo, convenio, index) {
   try {
+    showTooltip(`Buscando produto ${codigo} na base de dados...`);
+    
     const [dadosProdutos, dadosAnvisa, tabelaIpi] = await Promise.all([
-      fetch('./assets/exportardados.json')
-        .then(r => {
-          if (!r.ok) throw new Error('Erro ao carregar exportarDados.json');
-          return r.json();
-        }),
-      fetch('./assets/anvisa.json')
-        .then(r => {
-          if (!r.ok) throw new Error('Erro ao carregar anvisa.json');
-          return r.json();
-        }),
-      fetch('./assets/tabelatipi.json')
-        .then(r => {
-          if (!r.ok) throw new Error('Erro ao carregar tabelatipi.json');
-          return r.json();
-        })
+      fetch('./assets/exportardados.json').then(handleFetch),
+      fetch('./assets/anvisa.json').then(handleFetch),
+      fetch('./assets/tabelatipi.json').then(handleFetch)
     ]);
-
+    
+    showTooltip(`Analisando tributação para ${codigo}...`);
+    
     const produto = dadosProdutos.find(p => p.Codigo === codigo);
     produtoGlobal = produto;
     const descricao = produto ? produto.Descrição : "Descrição não encontrada";
@@ -226,7 +255,6 @@ async function processarItem(codigo, convenio, index) {
       xmlEncontrado 
     } = buscarNCMECest(produto, dadosAnvisa);
 
-    // Busca o preço monitorado no anvisa.json
     let precoMonitorado = "Produto não cadastrado na CMED";
     if (produto && produto["Cód. Barras"] && dadosAnvisa) {
       const produtoAnvisa = dadosAnvisa.find(item =>
@@ -261,7 +289,9 @@ async function processarItem(codigo, convenio, index) {
     document.getElementById("results").appendChild(criarBotaoCopiar(tabela, index));
   } catch (err) {
     console.error("Erro ao processar item:", err);
-    alert("Ocorreu um erro ao processar o item. Verifique o console para mais detalhes.");
+    showNotification('error', `Falha no item ${codigo}`, err.message);
+  } finally {
+    hideTooltip();
   }
 }
 
@@ -820,7 +850,6 @@ function gerarTabela({
     origem === "8" ? "Nacional, mercadoira ou bem com Conteúdo de Importação superior a 70%(setenta por cento)." :
     origem;
 
-  // Determinar classificação tributária
   const classificacaoTributaria = determinarClassificacaoTributaria(
     convenio, 
     cestFormatado, 
@@ -829,31 +858,39 @@ function gerarTabela({
     ncmFormatado
   );
 
-  // Determinar lista com base no CEST
   const lista = determinarLista(cestFormatado);
+  const temProblema = alertaCest || cestFormatado.includes("🔴") || ncmFormatado === "NCM não encontrado";
 
-  const tabela = document.createElement("table");
-  tabela.className = "result-table";
-  tabela.id = `resultTable${index}`;
-  tabela.innerHTML = `
-    <tr><td>Código</td><td>${codigo}</td></tr>
-    <tr><td>Desc. Item</td><td>${descricao}</td></tr>
-    <tr><td>NCM</td><td>${ncmFormatado}</td></tr>
-    <tr><td>CEST</td><td ${cestStyle}>${cestFormatado} ${alertaCest}</td></tr>
-    <tr><td>Substituição Tributária</td><td>${temST ? 'SIM' : 'NÃO'}</td></tr>
-    <tr><td>Débito e Crédito</td><td>${debitoCredito}</td></tr>
-    <tr><td>PIS/COFINS</td><td ${alertaPisCofins}>${statusPisCofins}</td></tr>
-    <tr><td>IPI</td><td>${statusIpi}</td></tr>
-    <tr><td>CST</td><td>${cstCompleto}</td></tr>
-    <tr><td>Número do FCI</td><td>${fciParaExibir}</td></tr>
-    <tr><td>Convênio</td><td>${convenio !== "Não" ? "SIM - " + convenio : "NÃO"}</td></tr>
-    <tr><td>Origem</td><td>${descricaoOrigem}</td></tr>
-    <tr><td>Preço (Monitorado - PF 20,5%)</td><td>${precoMonitorado}</td></tr>
-    <tr><td>Lista</td><td>${lista}</td></tr>
-    <tr><td>Classificação Tributária</td><td>${classificacaoTributaria}</td></tr>
-    <tr><td>XML Encontrado</td><td>${xmlEncontrado}</td></tr>
+  const container = document.createElement("div");
+  container.className = `result-container ${temProblema ? 'has-issue' : ''}`;
+  
+  container.innerHTML = `
+    <div class="result-header">
+      <span class="result-status">${temProblema ? '⚠️' : '✅'}</span>
+      <span class="result-title">Item ${index + 1} - Cód. ${codigo}</span>
+      <span class="result-time">${new Date().toLocaleTimeString()}</span>
+    </div>
+    <table class="result-table" id="resultTable${index}">
+      <tr><td>Código</td><td>${codigo}</td></tr>
+      <tr><td>Desc. Item</td><td>${descricao}</td></tr>
+      <tr><td>NCM</td><td>${ncmFormatado}</td></tr>
+      <tr><td>CEST</td><td ${cestStyle}>${cestFormatado} ${alertaCest}</td></tr>
+      <tr><td>Substituição Tributária</td><td>${temST ? 'SIM' : 'NÃO'}</td></tr>
+      <tr><td>Débito e Crédito</td><td>${debitoCredito}</td></tr>
+      <tr><td>PIS/COFINS</td><td ${alertaPisCofins}>${statusPisCofins}</td></tr>
+      <tr><td>IPI</td><td>${statusIpi}</td></tr>
+      <tr><td>CST</td><td>${cstCompleto}</td></tr>
+      <tr><td>Número do FCI</td><td>${fciParaExibir}</td></tr>
+      <tr><td>Convênio</td><td>${convenio !== "Não" ? "SIM - " + convenio : "NÃO"}</td></tr>
+      <tr><td>Origem</td><td>${descricaoOrigem}</td></tr>
+      <tr><td>Preço (Monitorado - PF 20,5%)</td><td>${precoMonitorado}</td></tr>
+      <tr><td>Lista</td><td>${lista}</td></tr>
+      <tr><td>Classificação Tributária</td><td>${classificacaoTributaria}</td></tr>
+      <tr><td>XML Encontrado</td><td>${xmlEncontrado}</td></tr>
+    </table>
   `;
-  return tabela;
+  
+  return container;
 }
 
 function criarBotaoCopiar(tabela, index) {
@@ -884,7 +921,7 @@ function copiarTabela(tabela, botao) {
 }
 
 // Copiar todos os resultados
-document.getElementById("copyAllBtn").addEventListener("click", () => {
+document.getElementById("copyAllBtn").addEventListener("click", function() {
   const tabelas = document.querySelectorAll(".result-table");
   let texto = "";
   tabelas.forEach(t => texto += t.innerText + "\n\n");
@@ -923,12 +960,9 @@ document.getElementById("addItemBtn").addEventListener("click", function() {
     <button type="button" class="removeBtn">Remover</button>
   `;
   
-  // Adiciona o novo item ao container
   document.getElementById("itemsContainer").appendChild(newItem);
   
-  // Adiciona o evento de clique ao novo botão de remover
   newItem.querySelector(".removeBtn").addEventListener("click", function() {
-    // Verifica se é o último item antes de remover
     const itens = document.querySelectorAll(".item-input");
     if (itens.length > 1) {
       newItem.remove();
