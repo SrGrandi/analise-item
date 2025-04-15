@@ -33,9 +33,9 @@ document.getElementById("analyzeBtn").addEventListener("click", function () {
 async function processarItem(codigo, convenio, index) {
   try {
     const [dadosProdutos, dadosAnvisa, tabelaIpi] = await Promise.all([
-      fetch('./assets/Exportar Dados.json').then(r => r.json()),
+      fetch('./assets/exportarDados.json').then(r => r.json()),
       fetch('./assets/anvisa.json').then(r => r.json()),
-      fetch('./assets/tabelatipi.json').then(r => r.json())
+      fetch('./assets/tabelaTipi.json').then(r => r.json())
     ]);
 
     const produto = dadosProdutos.find(p => p.Codigo === codigo);
