@@ -32,10 +32,21 @@ document.getElementById("analyzeBtn").addEventListener("click", function () {
 
 async function processarItem(codigo, convenio, index) {
   try {
+    const carregarJSON = async (caminho) => {
+      const response = await fetch(caminho);
+      if (!response.ok) {
+        const textoErro = await response.text();
+        console.warn(`Erro ao buscar ${caminho}:`, response.status);
+        console.warn(`Conteúdo retornado (${caminho}):`, textoErro);
+        throw new Error(`Erro ao carregar ${caminho}: ${response.status}`);
+      }
+      return response.json();
+    };
+
     const [dadosProdutos, dadosAnvisa, tabelaIpi] = await Promise.all([
-      fetch('./assets/exportarDados.json').then(r => r.json()),
-      fetch('./assets/anvisa.json').then(r => r.json()),
-      fetch('./assets/tabelaTipi.json').then(r => r.json())
+      carregarJSON('./assets/exportarDados.json'),
+      carregarJSON('./assets/anvisa.json'),
+      carregarJSON('./assets/tabelaTipi.json')
     ]);
 
     const produto = dadosProdutos.find(p => p.Codigo === codigo);
