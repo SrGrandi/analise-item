@@ -499,6 +499,13 @@ function buscarNCMECest(produto, dadosAnvisa) {
           if (origTags.length > i) {
             origem = origTags[i].textContent.trim();
             
+            // AJUSTE DA ORIGEM CONFORME SOLICITADO
+            if (origem === "1") {
+              origem = "2"; // Muda de 1 para 2
+            } else if (origem === "6") {
+              origem = "7"; // Muda de 6 para 7
+            }
+            
             if (origem === "5") {
               const fciTags = xmlContent.getElementsByTagName("nFCI");
               if (fciTags.length > i) {
