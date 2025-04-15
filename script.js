@@ -33,9 +33,9 @@ document.getElementById("analyzeBtn").addEventListener("click", function () {
 async function processarItem(codigo, convenio, index) {
   try {
     const [dadosProdutos, dadosAnvisa, tabelaIpi] = await Promise.all([
-      fetch('https://drive.google.com/uc?export=download&id=113Gds3HR3DJKQ1KeZhxr23l1Ri-cobUu').then(r => r.json()),
-      fetch('https://drive.google.com/uc?export=download&id=1bMLncgU58UQ335PTxvuW24j6lz87NUUc').then(r => r.json()),
-      fetch('https://drive.google.com/uc?export=download&id=1Xhwc5bjNlV4YrhiVFNzjooM_Xc-AH_Md').then(r => r.json())
+      fetch('./assets/Exportar Dados.json').then(r => r.json()),
+      fetch('./assets/anvisa.json').then(r => r.json()),
+      fetch('./assets/tabelatipi.json').then(r => r.json())
     ]);
 
     const produto = dadosProdutos.find(p => p.Codigo === codigo);
@@ -44,6 +44,7 @@ async function processarItem(codigo, convenio, index) {
 
     const { ncmFormatado, cestFormatado, cestStyle, alertaCest, nFCI } = buscarNCMECest(produto, dadosAnvisa);
     
+    // Busca o preço monitorado no anvisa.json
     let precoMonitorado = "Produto não cadastrado na CMED";
     if (produto && produto["Cód. Barras"] && dadosAnvisa) {
       const produtoAnvisa = dadosAnvisa.find(item => 
@@ -77,7 +78,6 @@ async function processarItem(codigo, convenio, index) {
     console.error("Erro ao carregar arquivos:", err);
   }
 }
-
 
 function determinarClassificacaoTributaria(convenio, cestFormatado, origem, debitoCredito, ncmFormatado) {
     // Remove pontos do CEST para comparação
