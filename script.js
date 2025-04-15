@@ -1,3 +1,73 @@
+// =============================================
+// FUNÇÕES AUXILIARES (definir no início do arquivo)
+// =============================================
+function showNotification(type, message, solution = '') {
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  
+  notification.innerHTML = `
+    <div class="notification-header">
+      ${type === 'error' ? '⚠️ Erro' : 'ℹ️ Informação'}
+    </div>
+    <div class="notification-message">${message}</div>
+    ${solution ? `<div class="notification-solution">Solução: ${solution}</div>` : ''}
+    <button class="notification-close">&times;</button>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => notification.remove(), 10000);
+  notification.querySelector('.notification-close').addEventListener('click', () => notification.remove());
+}
+
+function updateFileProgress(container, loaded, total, currentFile = '') {
+  const progress = Math.round((loaded / total) * 100);
+  
+  container.innerHTML = `
+    <div class="file-loading-container">
+      <div class="file-progress-bar">
+        <div class="file-progress" style="width: ${progress}%"></div>
+      </div>
+      <div class="file-progress-text">
+        ${loaded} de ${total} arquivos processados
+        ${currentFile ? `<div class="current-file">${currentFile}</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderFileList(container) {
+  if (xmlContents.length === 0) {
+    container.innerHTML = "<div class='notification-info'>Nenhum arquivo válido foi carregado</div>";
+    return;
+  }
+  
+  const list = document.createElement('div');
+  list.className = 'file-list';
+  
+  const header = document.createElement('div');
+  header.className = 'file-list-header';
+  header.textContent = `Arquivos carregados (${xmlContents.length}):`;
+  list.appendChild(header);
+  
+  xmlContents.forEach((file, index) => {
+    const fileElement = document.createElement('div');
+    fileElement.className = 'file-list-item';
+    fileElement.innerHTML = `
+      <span class="file-index">${index + 1}.</span>
+      <span class="file-name">${file.name}</span>
+      <span class="file-status">✅</span>
+    `;
+    list.appendChild(fileElement);
+  });
+  
+  container.innerHTML = '';
+  container.appendChild(list);
+}
+
+// =============================================
+// CÓDIGO PRINCIPAL
+// =============================================
 let xmlContents = []; // Array para armazenar múltiplos XMLs
 let produtoGlobal = null;
 
@@ -100,53 +170,6 @@ document.getElementById("xmlFiles").addEventListener("change", function (e) {
     reader.readAsText(file);
   });
 });
-
-// Função auxiliar para atualizar o progresso
-function updateFileProgress(container, loaded, total, currentFile = '') {
-  const progress = Math.round((loaded / total) * 100);
-  
-  container.innerHTML = `
-    <div class="file-loading-container">
-      <div class="file-progress-bar">
-        <div class="file-progress" style="width: ${progress}%"></div>
-      </div>
-      <div class="file-progress-text">
-        ${loaded} de ${total} arquivos processados
-        ${currentFile ? `<div class="current-file">${currentFile}</div>` : ''}
-      </div>
-    </div>
-  `;
-}
-
-// Função para renderizar a lista final de arquivos
-function renderFileList(container) {
-  if (xmlContents.length === 0) {
-    container.innerHTML = "<div class='notification-info'>Nenhum arquivo válido foi carregado</div>";
-    return;
-  }
-  
-  const list = document.createElement('div');
-  list.className = 'file-list';
-  
-  const header = document.createElement('div');
-  header.className = 'file-list-header';
-  header.textContent = `Arquivos carregados (${xmlContents.length}):`;
-  list.appendChild(header);
-  
-  xmlContents.forEach((file, index) => {
-    const fileElement = document.createElement('div');
-    fileElement.className = 'file-list-item';
-    fileElement.innerHTML = `
-      <span class="file-index">${index + 1}.</span>
-      <span class="file-name">${file.name}</span>
-      <span class="file-status">✅</span>
-    `;
-    list.appendChild(fileElement);
-  });
-  
-  container.innerHTML = '';
-  container.appendChild(list);
-}
 
 document.getElementById("analyzeBtn").addEventListener("click", function () {
   const container = document.getElementById("results");
