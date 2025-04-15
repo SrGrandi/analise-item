@@ -186,6 +186,23 @@ function determinarClassificacaoTributaria(convenio, cestFormatado, origem, debi
         if (cestNumerico === '1300400') return 'G2 - Outros Pos/Nac';
         if (cestNumerico === '1300401') return 'G3 - Outros Neg/Nac';
         if (cestNumerico === '1300402') return 'G4 - Outros Neu/Nac';
+        if (cestNumerico === '1300500') return 'G2 - Outros Pos/Nac';
+        if (cestNumerico === '1300501') return 'G3 - Outros Neg/Nac';
+        if (cestNumerico === '1300600') return 'G4 - Outros Neu/Nac';
+        if (cestNumerico === '1300700') return 'G2 - Outros Pos/Nac';
+        if (cestNumerico === '1300701') return 'G3 - Outros Neg/Nac';
+        if (cestNumerico === '1300800') return 'G2 - Outros Pos/Nac';
+        if (cestNumerico === '1300801') return 'G3 - Outros Neg/Nac';
+        if (cestNumerico === '1300900') return 'G2 - Outros Pos/Nac';
+        if (cestNumerico === '1300901') return 'G3 - Outros Neg/Nac';
+        if (cestNumerico === '1301000') return 'G2 - Outros Pos/Nac';
+        if (cestNumerico === '1301001') return 'G3 - Outros Neg/Nac';
+        if (cestNumerico === '1301100') return 'G4 - Outros Neu/Nac';
+        if (cestNumerico === '1301200') return 'G4 - Outros Neu/Nac';
+        if (cestNumerico === '1301300') return 'G4 - Outros Neu/Nac';
+        if (cestNumerico === '1301400') return 'G4 - Outros Neu/Nac';
+        if (cestNumerico === '1301500') return 'G4 - Outros Neu/Nac';
+        if (cestNumerico === '1301600') return 'G4 - Outros Neu/Nac';
     } 
     else if (isImportado) {
         if (cestNumerico === '1300100') return 'G5 - Ético Pos/Imp';
@@ -197,6 +214,23 @@ function determinarClassificacaoTributaria(convenio, cestFormatado, origem, debi
         if (cestNumerico === '1300400') return 'H2 - Outros Pos/Imp';
         if (cestNumerico === '1300401') return 'H3 - Outros Neg/Imp';
         if (cestNumerico === '1300402') return 'H4 - Outros Neu/Imp';
+        if (cestNumerico === '1300500') return 'H2 - Outros Pos/Imp';
+        if (cestNumerico === '1300501') return 'H3 - Outros Neg/Imp';
+        if (cestNumerico === '1300600') return 'H4 - Outros Neu/Imp';
+        if (cestNumerico === '1300700') return 'H2 - Outros Pos/Imp';
+        if (cestNumerico === '1300701') return 'H3 - Outros Neg/Imp';
+        if (cestNumerico === '1300800') return 'H2 - Outros Pos/Imp';
+        if (cestNumerico === '1300801') return 'H3 - Outros Neg/Imp';
+        if (cestNumerico === '1300900') return 'H2 - Outros Pos/Imp';
+        if (cestNumerico === '1300901') return 'H3 - Outros Neg/Imp';
+        if (cestNumerico === '1301000') return 'H2 - Outros Pos/Imp';
+        if (cestNumerico === '1301001') return 'H3 - Outros Neg/Imp';
+        if (cestNumerico === '1301100') return 'H4 - Outros Neu/Imp';
+        if (cestNumerico === '1301200') return 'H4 - Outros Neu/Imp';
+        if (cestNumerico === '1301300') return 'H4 - Outros Neu/Imp';
+        if (cestNumerico === '1301400') return 'H4 - Outros Neu/Imp';
+        if (cestNumerico === '1301500') return 'H4 - Outros Neu/Imp';
+        if (cestNumerico === '1301600') return 'H4 - Outros Neu/Imp';
     }
     else if (isNacionalizado) {
         if (cestNumerico === '1300200') return 'J6 - NACIONALIZADO - GEN/POS';
@@ -208,6 +242,23 @@ function determinarClassificacaoTributaria(convenio, cestFormatado, origem, debi
         if (cestNumerico === '1300400') return 'K3 - NACIONALIZADO - OUT/POS';
         if (cestNumerico === '1300401') return 'K4 - NACIONALIZADO - OUT/NEG';
         if (cestNumerico === '1300402') return 'K5 - NACIONALIZADO - OUT/NEU';
+        if (cestNumerico === '1300500') return 'K3 - NACIONALIZADO - OUT/POS';
+        if (cestNumerico === '1300501') return 'K4 - NACIONALIZADO - OUT/NEG';
+        if (cestNumerico === '1300600') return 'K5 - NACIONALIZADO - OUT/NEU';
+        if (cestNumerico === '1300700') return 'K3 - NACIONALIZADO - OUT/POS';
+        if (cestNumerico === '1300701') return 'K4 - NACIONALIZADO - OUT/NEG';
+        if (cestNumerico === '1300800') return 'K3 - NACIONALIZADO - OUT/POS';
+        if (cestNumerico === '1300801') return 'K4 - NACIONALIZADO - OUT/NEG';
+        if (cestNumerico === '1300900') return 'K3 - NACIONALIZADO - OUT/POS';
+        if (cestNumerico === '1300901') return 'K4 - NACIONALIZADO - OUT/NEG';
+        if (cestNumerico === '1301000') return 'K3 - NACIONALIZADO - OUT/POS';
+        if (cestNumerico === '1301001') return 'K4 - NACIONALIZADO - OUT/NEG';
+        if (cestNumerico === '1301100') return 'K5 - NACIONALIZADO - OUT/NEU';
+        if (cestNumerico === '1301200') return 'K5 - NACIONALIZADO - OUT/NEU';
+        if (cestNumerico === '1301300') return 'K5 - NACIONALIZADO - OUT/NEU';
+        if (cestNumerico === '1301400') return 'K5 - NACIONALIZADO - OUT/NEU';
+        if (cestNumerico === '1301500') return 'K5 - NACIONALIZADO - OUT/NEU';
+        if (cestNumerico === '1301600') return 'K5 - NACIONALIZADO - OUT/NEU';
     }
     
     // Se nenhum caso acima for atendido
