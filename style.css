@@ -117,3 +117,86 @@ button[id^="copyBtn"] {
 #copyAllBtn.copiado {
   background-color: #1D4D63;
 }
+
+.file-loading-container {
+  margin: 10px 0;
+  width: 100%;
+}
+
+.file-progress-bar {
+  background: #e0e0e0;
+  border-radius: 10px;
+  height: 15px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.file-progress {
+  background: #1D4D63;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.file-progress-text {
+  font-size: 13px;
+  color: #555;
+  text-align: center;
+}
+
+.current-file {
+  font-size: 12px;
+  color: #777;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+.file-list {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.file-list-header {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #1D4D63;
+}
+
+.file-list-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.file-list-item:last-child {
+  border-bottom: none;
+}
+
+.file-index {
+  margin-right: 8px;
+  color: #2E955D;
+  font-weight: bold;
+  min-width: 20px;
+}
+
+.file-name {
+  flex-grow: 1;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.file-status {
+  margin-left: 10px;
+  color: #2E955D;
+}
+
+.notification-info {
+  padding: 8px;
+  background: #e3f2fd;
+  color: #0d47a1;
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: center;
+}

@@ -3,42 +3,150 @@ let produtoGlobal = null;
 
 // Carregar múltiplos XMLs
 document.getElementById("xmlFiles").addEventListener("change", function (e) {
-  xmlContents = []; // Limpa array ao selecionar novos arquivos
   const files = e.target.files;
   const fileNamesDiv = document.getElementById("selectedFileNames");
-  fileNamesDiv.innerHTML = "";
   
-  if (files.length === 0) return;
+  // Limpar conteúdo anterior e mostrar estado de carregamento
+  fileNamesDiv.innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <span>Preparando para carregar ${files.length} arquivo(s)...</span>
+    </div>
+  `;
   
+  if (files.length === 0) {
+    fileNamesDiv.innerHTML = "<div class='notification-info'>Nenhum arquivo selecionado</div>";
+    return;
+  }
+
+  // Resetar array de conteúdos
+  xmlContents = [];
+  
+  // Desabilitar botão de análise durante o carregamento
+  document.getElementById("analyzeBtn").disabled = true;
+  
+  // Contador para acompanhar o progresso
   let filesLoaded = 0;
+  const totalFiles = files.length;
   
+  // Atualizar UI com progresso inicial
+  updateFileProgress(fileNamesDiv, filesLoaded, totalFiles);
+  
+  // Processar cada arquivo
   Array.from(files).forEach((file, index) => {
     const reader = new FileReader();
+    
+    reader.onloadstart = function() {
+      updateFileProgress(fileNamesDiv, filesLoaded, totalFiles, `Lendo ${file.name}...`);
+    };
+    
     reader.onload = function() {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(reader.result, "application/xml");
-      xmlContents.push({
-        name: file.name,
-        doc: xmlDoc
-      });
-      
-      // Adiciona nome do arquivo à lista
-      const fileElement = document.createElement("div");
-      fileElement.textContent = `${index + 1}. ${file.name}`;
-      fileNamesDiv.appendChild(fileElement);
-      
-      filesLoaded++;
-      
-      if (filesLoaded === files.length) {
-        console.log("Todos os XMLs foram carregados", xmlContents);
+      try {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(reader.result, "application/xml");
+        
+        // Verificar se o XML é válido
+        const errorNode = xmlDoc.querySelector("parsererror");
+        if (errorNode) {
+          throw new Error("Arquivo XML inválido");
+        }
+        
+        xmlContents.push({
+          name: file.name,
+          doc: xmlDoc
+        });
+        
+        filesLoaded++;
+        updateFileProgress(fileNamesDiv, filesLoaded, totalFiles, `Processado: ${file.name}`);
+        
+        // Quando todos os arquivos estiverem carregados
+        if (filesLoaded === totalFiles) {
+          showNotification(
+            'success', 
+            'Carregamento concluído', 
+            `${totalFiles} arquivo(s) XML foram carregados com sucesso.`
+          );
+          
+          // Atualizar lista final de arquivos
+          renderFileList(fileNamesDiv);
+          
+          // Habilitar botão de análise
+          document.getElementById("analyzeBtn").disabled = false;
+        }
+      } catch (error) {
+        console.error("Erro ao processar arquivo:", file.name, error);
+        showNotification(
+          'error',
+          `Erro no arquivo ${file.name}`,
+          'O arquivo pode estar corrompido ou não é um XML válido. Verifique e tente novamente.'
+        );
+        
+        // Continuar mesmo com erro em um arquivo
+        filesLoaded++;
+        updateFileProgress(fileNamesDiv, filesLoaded, totalFiles);
       }
     };
+    
     reader.onerror = function() {
-      console.error("Erro ao ler o arquivo:", file.name);
+      showNotification(
+        'error',
+        `Falha ao ler o arquivo ${file.name}`,
+        'O arquivo pode estar inacessível. Verifique as permissões e tente novamente.'
+      );
+      filesLoaded++;
+      updateFileProgress(fileNamesDiv, filesLoaded, totalFiles);
     };
+    
     reader.readAsText(file);
   });
 });
+
+// Função auxiliar para atualizar o progresso
+function updateFileProgress(container, loaded, total, currentFile = '') {
+  const progress = Math.round((loaded / total) * 100);
+  
+  container.innerHTML = `
+    <div class="file-loading-container">
+      <div class="file-progress-bar">
+        <div class="file-progress" style="width: ${progress}%"></div>
+      </div>
+      <div class="file-progress-text">
+        ${loaded} de ${total} arquivos processados
+        ${currentFile ? `<div class="current-file">${currentFile}</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// Função para renderizar a lista final de arquivos
+function renderFileList(container) {
+  if (xmlContents.length === 0) {
+    container.innerHTML = "<div class='notification-info'>Nenhum arquivo válido foi carregado</div>";
+    return;
+  }
+  
+  const list = document.createElement('div');
+  list.className = 'file-list';
+  
+  const header = document.createElement('div');
+  header.className = 'file-list-header';
+  header.textContent = `Arquivos carregados (${xmlContents.length}):`;
+  list.appendChild(header);
+  
+  xmlContents.forEach((file, index) => {
+    const fileElement = document.createElement('div');
+    fileElement.className = 'file-list-item';
+    fileElement.innerHTML = `
+      <span class="file-index">${index + 1}.</span>
+      <span class="file-name">${file.name}</span>
+      <span class="file-status">✅</span>
+    `;
+    list.appendChild(fileElement);
+  });
+  
+  container.innerHTML = '';
+  container.appendChild(list);
+}
 
 document.getElementById("analyzeBtn").addEventListener("click", function () {
   const container = document.getElementById("results");
