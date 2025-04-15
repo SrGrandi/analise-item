@@ -33,7 +33,7 @@ document.getElementById("analyzeBtn").addEventListener("click", function () {
 async function processarItem(codigo, convenio, index) {
   try {
     const [dadosProdutos, dadosAnvisa, tabelaIpi] = await Promise.all([
-      fetch('./assets/exportarDados.json')
+      fetch('./assets/exportardados.json')
         .then(r => {
           if (!r.ok) throw new Error('Erro ao carregar exportarDados.json');
           return r.json();
