@@ -1,13 +1,43 @@
-let xmlContent = null;
+let xmlContents = []; // Array para armazenar múltiplos XMLs
 let produtoGlobal = null;
 
-document.getElementById("xmlFile").addEventListener("change", function (e) {
-  const reader = new FileReader();
-  reader.onload = function () {
-    const parser = new DOMParser();
-    xmlContent = parser.parseFromString(reader.result, "application/xml");
-  };
-  reader.readAsText(e.target.files[0]);
+// Carregar múltiplos XMLs
+document.getElementById("xmlFiles").addEventListener("change", function (e) {
+  xmlContents = []; // Limpa array ao selecionar novos arquivos
+  const files = e.target.files;
+  const fileNamesDiv = document.getElementById("selectedFileNames");
+  fileNamesDiv.innerHTML = "";
+  
+  if (files.length === 0) return;
+  
+  let filesLoaded = 0;
+  
+  Array.from(files).forEach((file, index) => {
+    const reader = new FileReader();
+    reader.onload = function() {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(reader.result, "application/xml");
+      xmlContents.push({
+        name: file.name,
+        doc: xmlDoc
+      });
+      
+      // Adiciona nome do arquivo à lista
+      const fileElement = document.createElement("div");
+      fileElement.textContent = `${index + 1}. ${file.name}`;
+      fileNamesDiv.appendChild(fileElement);
+      
+      filesLoaded++;
+      
+      if (filesLoaded === files.length) {
+        console.log("Todos os XMLs foram carregados", xmlContents);
+      }
+    };
+    reader.onerror = function() {
+      console.error("Erro ao ler o arquivo:", file.name);
+    };
+    reader.readAsText(file);
+  });
 });
 
 document.getElementById("analyzeBtn").addEventListener("click", function () {
@@ -21,7 +51,7 @@ document.getElementById("analyzeBtn").addEventListener("click", function () {
     const codigo = String(Number(item.querySelector(".codigo-input").value));
     const convenio = item.querySelector(".convenio-select").value;
 
-    if (isNaN(Number(codigo))) {
+    if (isNaN(Number(codigo)) || codigo === "0") {
       alert("Por favor, insira um código válido.");
       return;
     }
@@ -43,7 +73,7 @@ async function processarItem(codigo, convenio, index) {
           if (!r.ok) throw new Error('Erro ao carregar anvisa.json');
           return r.json();
         }),
-      fetch('./assets/tabelatipi.json') // nome corrigido
+      fetch('./assets/tabelatipi.json')
         .then(r => {
           if (!r.ok) throw new Error('Erro ao carregar tabelatipi.json');
           return r.json();
@@ -54,7 +84,7 @@ async function processarItem(codigo, convenio, index) {
     produtoGlobal = produto;
     const descricao = produto ? produto.Descrição : "Descrição não encontrada";
 
-    const { ncmFormatado, cestFormatado, cestStyle, alertaCest, nFCI } = buscarNCMECest(produto, dadosAnvisa);
+    const { ncmFormatado, cestFormatado, cestStyle, alertaCest, nFCI, xmlEncontrado } = buscarNCMECest(produto, dadosAnvisa);
 
     // Busca o preço monitorado no anvisa.json
     let precoMonitorado = "Produto não cadastrado na CMED";
@@ -81,13 +111,15 @@ async function processarItem(codigo, convenio, index) {
       convenio,
       tabelaIpi,
       nFCI,
-      precoMonitorado
+      precoMonitorado,
+      xmlEncontrado
     });
 
     document.getElementById("results").appendChild(tabela);
     document.getElementById("results").appendChild(criarBotaoCopiar(tabela, index));
   } catch (err) {
-    console.error("Erro ao carregar arquivos:", err);
+    console.error("Erro ao processar item:", err);
+    alert("Ocorreu um erro ao processar o item. Verifique o console para mais detalhes.");
   }
 }
 
@@ -403,59 +435,81 @@ function buscarNCMECest(produto, dadosAnvisa) {
   let cestStyle = "";
   let alertaCest = "";
   let nFCI = "";
+  let origem = "0";
+  let fciParaExibir = "";
+  let xmlEncontrado = "Não encontrado em nenhum XML";
 
-  if (produto && produto["Cód. Barras"] && xmlContent) {
-    const ceans = xmlContent.getElementsByTagName("cEAN");
-    const ncms = xmlContent.getElementsByTagName("NCM");
-    const cests = xmlContent.getElementsByTagName("CEST");
-    const nFCIs = xmlContent.getElementsByTagName("nFCI");
+  if (produto && produto["Cód. Barras"] && xmlContents.length > 0) {
+    // Procura em todos os XMLs
+    for (const xmlData of xmlContents) {
+      const xmlContent = xmlData.doc;
+      const ceans = xmlContent.getElementsByTagName("cEAN");
+      
+      for (let i = 0; i < ceans.length; i++) {
+        const cean = ceans[i].textContent.trim();
+        if (cean === produto["Cód. Barras"]) {
+          const ncms = xmlContent.getElementsByTagName("NCM");
+          const cests = xmlContent.getElementsByTagName("CEST");
+          const nFCIs = xmlContent.getElementsByTagName("nFCI");
+          const origTags = xmlContent.getElementsByTagName("orig");
 
-    for (let i = 0; i < ceans.length; i++) {
-      const cean = ceans[i].textContent.trim();
-      if (cean === produto["Cód. Barras"]) {
-        const ncmRaw = ncms[i]?.textContent.trim() || "";
-        const cestRaw = cests[i]?.textContent.trim() || "";
-        
-        if (nFCIs.length > i) {
-          nFCI = nFCIs[i]?.textContent.trim() || "";
-        }
-
-        if (ncmRaw.length === 8) {
-          ncmFormatado = `${ncmRaw.slice(0, 4)}.${ncmRaw.slice(4, 6)}.${ncmRaw.slice(6, 8)}`;
-        } else {
-          ncmFormatado = ncmRaw;
-        }
-
-        const ncmComecaCom30 = ncmRaw.startsWith("30");
-
-        if (cestRaw.length === 7) {
-          if (cestRaw === "0000000") {
-            cestFormatado = "Sem CEST";
+          // Processa NCM
+          const ncmRaw = ncms[i]?.textContent.trim() || "";
+          if (ncmRaw.length === 8) {
+            ncmFormatado = `${ncmRaw.slice(0, 4)}.${ncmRaw.slice(4, 6)}.${ncmRaw.slice(6, 8)}`;
           } else {
-            cestFormatado = `${cestRaw.slice(0, 2)}.${cestRaw.slice(2, 5)}.${cestRaw.slice(5, 7)}`;
+            ncmFormatado = ncmRaw;
           }
-        } else {
-          if (ncmComecaCom30) {
-            cestFormatado = "🔴 Obrigatório - Não informado";
-            cestStyle = 'style="color: red; font-weight: bold;"';
+
+          // Processa CEST
+          const cestRaw = cests[i]?.textContent.trim() || "";
+          const ncmComecaCom30 = ncmRaw.startsWith("30");
+
+          if (cestRaw.length === 7) {
+            if (cestRaw === "0000000") {
+              cestFormatado = "Sem CEST";
+            } else {
+              cestFormatado = `${cestRaw.slice(0, 2)}.${cestRaw.slice(2, 5)}.${cestRaw.slice(5, 7)}`;
+            }
           } else {
-            cestFormatado = "Sem CEST";
+            if (ncmComecaCom30) {
+              cestFormatado = "🔴 Obrigatório - Não informado";
+              cestStyle = 'style="color: red; font-weight: bold;"';
+            } else {
+              cestFormatado = "Sem CEST";
+            }
           }
-        }
 
-        const podeValidarCEST = !cestFormatado.includes("🔴") && cestFormatado !== "Sem CEST";
+          // Processa FCI e Origem
+          if (nFCIs.length > i) {
+            nFCI = nFCIs[i]?.textContent.trim() || "";
+          }
 
-        if (podeValidarCEST) {
-          const entradaAnvisa = dadosAnvisa.find(entry =>
-            [entry["EAN 1"], entry["EAN 2"], entry["EAN 3"]].includes(cean)
-          );
+          if (origTags.length > i) {
+            origem = origTags[i].textContent.trim();
+            
+            if (origem === "5") {
+              const fciTags = xmlContent.getElementsByTagName("nFCI");
+              if (fciTags.length > i) {
+                fciParaExibir = fciTags[i]?.textContent.trim() || "";
+              }
+            }
+          }
 
-          if (entradaAnvisa) {
-            const tipo = (entradaAnvisa["TIPO DE PRODUTO (STATUS DO PRODUTO)"] || "").trim();
-            const lista = (entradaAnvisa["LISTA DE CONCESSÃO DE CRÉDITO TRIBUTÁRIO (PIS/COFINS)"] || "").trim();
-            const combinacao = `${tipo || "Vazio"}, ${lista || "Vazio"}`;
+          // Validação do CEST
+          const podeValidarCEST = !cestFormatado.includes("🔴") && cestFormatado !== "Sem CEST";
 
-            const permitido = {
+          if (podeValidarCEST) {
+            const entradaAnvisa = dadosAnvisa.find(entry =>
+              [entry["EAN 1"], entry["EAN 2"], entry["EAN 3"]].includes(cean)
+            );
+
+            if (entradaAnvisa) {
+              const tipo = (entradaAnvisa["TIPO DE PRODUTO (STATUS DO PRODUTO)"] || "").trim();
+              const lista = (entradaAnvisa["LISTA DE CONCESSÃO DE CRÉDITO TRIBUTÁRIO (PIS/COFINS)"] || "").trim();
+              const combinacao = `${tipo || "Vazio"}, ${lista || "Vazio"}`;
+
+              const permitido = {
               "Biológico, Positiva": ["13.001.00", "13.004.00"],
               "Biológico, Negativa": ["13.001.01", "13.004.01"],
               "Biológico, Neutra": ["13.001.02", "13.004.02"],
@@ -499,23 +553,45 @@ function buscarNCMECest(produto, dadosAnvisa) {
             };
 
             const regra = permitido[combinacao];
-            const validado = Array.isArray(regra)
-              ? regra.includes(cestFormatado)
-              : regra?.test?.(cestFormatado);
+              const validado = Array.isArray(regra)
+                ? regra.includes(cestFormatado)
+                : regra?.test?.(cestFormatado);
 
-            if (regra && !validado) {
-              alertaCest = "⚠️ CEST incompatível com tipo/lista";
-              cestStyle = 'style="color: red; font-weight: bold;"';
+              if (regra && !validado) {
+                alertaCest = "⚠️ CEST incompatível com tipo/lista";
+                cestStyle = 'style="color: red; font-weight: bold;"';
+              }
             }
           }
-        }
 
-        break;
+          xmlEncontrado = xmlData.name;
+          
+          // Retorna ao encontrar o primeiro registro
+          return { 
+            ncmFormatado, 
+            cestFormatado, 
+            cestStyle, 
+            alertaCest, 
+            nFCI,
+            origem,
+            fciParaExibir,
+            xmlEncontrado
+          };
+        }
       }
     }
   }
 
-  return { ncmFormatado, cestFormatado, cestStyle, alertaCest, nFCI };
+  return { 
+    ncmFormatado, 
+    cestFormatado, 
+    cestStyle, 
+    alertaCest, 
+    nFCI,
+    origem,
+    fciParaExibir,
+    xmlEncontrado
+  };
 }
 
 function determinarLista(cestFormatado) {
@@ -538,7 +614,7 @@ function determinarLista(cestFormatado) {
   return "NEUTRA";
 }
 
-function gerarTabela({ index, codigo, descricao, ncmFormatado, cestFormatado, cestStyle, alertaCest, convenio, tabelaIpi, nFCI, precoMonitorado }) {
+function gerarTabela({ index, codigo, descricao, ncmFormatado, cestFormatado, cestStyle, alertaCest, convenio, tabelaIpi, nFCI, precoMonitorado, xmlEncontrado }) {
   const temST = verificarSubstituicaoTributaria(ncmFormatado, cestFormatado);
   const debitoCredito = temST ? 'NÃO' : 'SIM';
   
@@ -547,72 +623,46 @@ function gerarTabela({ index, codigo, descricao, ncmFormatado, cestFormatado, ce
   let alertaPisCofins = "";
   
   if (pisCofins) {
-      statusPisCofins = pisCofins.saida;
-      if (pisCofins.aliquota) {
-          statusPisCofins += ` (${pisCofins.aliquota})`;
-      }
+    statusPisCofins = pisCofins.saida;
+    if (pisCofins.aliquota) {
+      statusPisCofins += ` (${pisCofins.aliquota})`;
+    }
   } else {
-      statusPisCofins = "🔴 NCM não cadastrado no PIS/COFINS";
-      alertaPisCofins = 'style="color: red; font-weight: bold;"';
+    statusPisCofins = "🔴 NCM não cadastrado no PIS/COFINS";
+    alertaPisCofins = 'style="color: red; font-weight: bold;"';
   }
 
   const { temIpi, aliquota } = verificarIpi(ncmFormatado, tabelaIpi);
   const statusIpi = temIpi ? `SIM (${aliquota}%)` : 'NÃO';
 
-  let origem = "0";
-  let fciParaExibir = "";
-  
-  if (produtoGlobal && produtoGlobal["Cód. Barras"] && xmlContent) {
-      const ceans = xmlContent.getElementsByTagName("cEAN");
-      for (let i = 0; i < ceans.length; i++) {
-          const cean = ceans[i].textContent.trim();
-          if (cean === produtoGlobal["Cód. Barras"]) {
-              const origTags = xmlContent.getElementsByTagName("orig");
-              if (origTags.length > i) {
-                  origem = origTags[i].textContent.trim();
-                  
-                  if (origem === "5") {
-                      const fciTags = xmlContent.getElementsByTagName("nFCI");
-                      if (fciTags.length > i) {
-                          fciParaExibir = fciTags[i].textContent.trim();
-                      } else {
-                          fciParaExibir = nFCI || "";
-                      }
-                  }
-              }
-              break;
-          }
-      }
-  }
-
   let finalCST = "00";
   if (convenio !== "Não") {
-      finalCST = "40";
+    finalCST = "40";
   } else if (debitoCredito === 'NÃO') {
-      finalCST = "60";
+    finalCST = "60";
   }
 
   const cstCompleto = origem + finalCST;
 
   const descricaoOrigem = 
-      origem === "0" ? "0 - Nacional, exceto as indicadas nos códigos 3,4,5 e 8" :
-      origem === "1" ? "1 - Estrangeira- importação direta, exceto a indicada no codigo 6" :
-      origem === "2" ? "2 - Estrangeira- Adquirida no mercado interno, Exceto a indicada no codigo 7" :
-      origem === "3" ? "3 - Nacional, mercadoria ou bem com Conteúdo de Importação superior a 40% e inferior ou igual a 70%" :
-      origem === "4" ? "4 - Nacional, cuja produção tenha sido feita em conformidade com os processos produtivos básicos de que tratam o Decreto-Lei no 288/67, e as Leis nos 8.248/91, 8.387/91, 10.176/01 e 11.484/07." :
-      origem === "5" ? "5 - Nacional, mercadoria ou bem com Conteúdo de Importação inferior ou igual a 40%(quarenta por cento)" :
-      origem === "6" ? "6 - Estrangeira - Adquirida no mercado interno, sem similar nacional, constante em lista de Resolução CAMEX e gás natural." :
-      origem === "7" ? "7 - Estrangeira- Adquirida no mercado interno, sem similar nacional, constante em lista de Resolução CAMEX e gás natural." :
-      origem === "8" ? "Nacional, mercadoira ou bem com Conteúdo de Importação superior a 70%(setenta por cento)." :
-      origem;
+    origem === "0" ? "0 - Nacional, exceto as indicadas nos códigos 3,4,5 e 8" :
+    origem === "1" ? "1 - Estrangeira- importação direta, exceto a indicada no codigo 6" :
+    origem === "2" ? "2 - Estrangeira- Adquirida no mercado interno, Exceto a indicada no codigo 7" :
+    origem === "3" ? "3 - Nacional, mercadoria ou bem com Conteúdo de Importação superior a 40% e inferior ou igual a 70%" :
+    origem === "4" ? "4 - Nacional, cuja produção tenha sido feita em conformidade com os processos produtivos básicos de que tratam o Decreto-Lei no 288/67, e as Leis nos 8.248/91, 8.387/91, 10.176/01 e 11.484/07." :
+    origem === "5" ? "5 - Nacional, mercadoria ou bem com Conteúdo de Importação inferior ou igual a 40%(quarenta por cento)" :
+    origem === "6" ? "6 - Estrangeira - Adquirida no mercado interno, sem similar nacional, constante em lista de Resolução CAMEX e gás natural." :
+    origem === "7" ? "7 - Estrangeira- Adquirida no mercado interno, sem similar nacional, constante em lista de Resolução CAMEX e gás natural." :
+    origem === "8" ? "Nacional, mercadoira ou bem com Conteúdo de Importação superior a 70%(setenta por cento)." :
+    origem;
 
   // Determinar classificação tributária
   const classificacaoTributaria = determinarClassificacaoTributaria(
-      convenio, 
-      cestFormatado, 
-      origem, 
-      debitoCredito, 
-      ncmFormatado
+    convenio, 
+    cestFormatado, 
+    origem, 
+    debitoCredito, 
+    ncmFormatado
   );
 
   // Determinar lista com base no CEST
@@ -622,21 +672,22 @@ function gerarTabela({ index, codigo, descricao, ncmFormatado, cestFormatado, ce
   tabela.className = "result-table";
   tabela.id = `resultTable${index}`;
   tabela.innerHTML = `
-      <tr><td>Código</td><td>${codigo}</td></tr>
-      <tr><td>Desc. Item</td><td>${descricao}</td></tr>
-      <tr><td>NCM</td><td>${ncmFormatado}</td></tr>
-      <tr><td>CEST</td><td ${cestStyle}>${cestFormatado} ${alertaCest}</td></tr>
-      <tr><td>Substituição Tributária</td><td>${temST ? 'SIM' : 'NÃO'}</td></tr>
-      <tr><td>Débito e Crédito</td><td>${debitoCredito}</td></tr>
-      <tr><td>PIS/COFINS</td><td ${alertaPisCofins}>${statusPisCofins}</td></tr>
-      <tr><td>IPI</td><td>${statusIpi}</td></tr>
-      <tr><td>CST</td><td>${cstCompleto}</td></tr>
-      <tr><td>Número do FCI</td><td>${fciParaExibir}</td></tr>
-      <tr><td>Convênio</td><td>${convenio !== "Não" ? "SIM - " + convenio : "NÃO"}</td></tr>
-      <tr><td>Origem</td><td>${descricaoOrigem}</td></tr>
-      <tr><td>Preço (Monitorado - PF 20,5%)</td><td>${precoMonitorado}</td></tr>
-      <tr><td>Lista</td><td>${lista}</td></tr>
-      <tr><td>Classificação Tributária</td><td>${classificacaoTributaria}</td></tr>
+    <tr><td>Código</td><td>${codigo}</td></tr>
+    <tr><td>Desc. Item</td><td>${descricao}</td></tr>
+    <tr><td>NCM</td><td>${ncmFormatado}</td></tr>
+    <tr><td>CEST</td><td ${cestStyle}>${cestFormatado} ${alertaCest}</td></tr>
+    <tr><td>Substituição Tributária</td><td>${temST ? 'SIM' : 'NÃO'}</td></tr>
+    <tr><td>Débito e Crédito</td><td>${debitoCredito}</td></tr>
+    <tr><td>PIS/COFINS</td><td ${alertaPisCofins}>${statusPisCofins}</td></tr>
+    <tr><td>IPI</td><td>${statusIpi}</td></tr>
+    <tr><td>CST</td><td>${cstCompleto}</td></tr>
+    <tr><td>Número do FCI</td><td>${fciParaExibir}</td></tr>
+    <tr><td>Convênio</td><td>${convenio !== "Não" ? "SIM - " + convenio : "NÃO"}</td></tr>
+    <tr><td>Origem</td><td>${descricaoOrigem}</td></tr>
+    <tr><td>Preço (Monitorado - PF 20,5%)</td><td>${precoMonitorado}</td></tr>
+    <tr><td>Lista</td><td>${lista}</td></tr>
+    <tr><td>Classificação Tributária</td><td>${classificacaoTributaria}</td></tr>
+    <tr><td>XML Encontrado</td><td>${xmlEncontrado}</td></tr>
   `;
   return tabela;
 }
@@ -668,6 +719,7 @@ function copiarTabela(tabela, botao) {
   }, 1500);
 }
 
+// Copiar todos os resultados
 document.getElementById("copyAllBtn").addEventListener("click", () => {
   const tabelas = document.querySelectorAll(".result-table");
   let texto = "";
@@ -689,7 +741,7 @@ document.getElementById("copyAllBtn").addEventListener("click", () => {
   }, 1500);
 });
 
-// Função para adicionar novos itens
+// Adicionar novo item
 document.getElementById("addItemBtn").addEventListener("click", function() {
   const newItem = document.createElement("div");
   newItem.className = "item-input";
@@ -714,7 +766,7 @@ document.getElementById("addItemBtn").addEventListener("click", function() {
   });
 });
 
-// Função para remover itens
+// Remover item
 function removeItem(button) {
   const item = button.parentNode;
   if (document.querySelectorAll(".item-input").length > 1) {
