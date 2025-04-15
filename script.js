@@ -44,9 +44,9 @@ async function processarItem(codigo, convenio, index) {
     };
 
     const [dadosProdutos, dadosAnvisa, tabelaIpi] = await Promise.all([
-      carregarJSON('./assets/exportarDados.json'),
+      carregarJSON('./assets/exportardados.json'),
       carregarJSON('./assets/anvisa.json'),
-      carregarJSON('./assets/tabelaTipi.json')
+      carregarJSON('./assets/tabelatipi.json')
     ]);
 
     const produto = dadosProdutos.find(p => p.Codigo === codigo);
